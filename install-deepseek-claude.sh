@@ -11,12 +11,44 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+BOLD='\033[1m'
 NC='\033[0m' # No Color
 
 # Configuration
 INSTALL_DIR="$HOME/.deepseek-claude"
 BIN_DIR="/usr/local/bin"
 WRAPPER_SCRIPT="deepseek-claude"
+
+# Available DeepSeek models
+MODELS=(
+    "deepseek-v4-pro"
+    "deepseek-v4-flash"
+    "deepseek-chat"
+    "deepseek-reasoner"
+)
+MODEL_DESCRIPTIONS=(
+    "DeepSeek V4 Pro - Strongest model for complex reasoning, coding, and agent workflows"
+    "DeepSeek V4 Flash - Fast and economical for cost-efficient production use"
+    "DeepSeek Chat - Legacy model (maps to V4 Flash non-thinking mode)"
+    "DeepSeek Reasoner - Legacy model (maps to V4 Flash thinking mode)"
+)
+
+# Available context limits
+CONTEXT_LIMITS=(
+    "64000"
+    "128000"
+    "256000"
+    "512000"
+    "1000000"
+)
+CONTEXT_DESCRIPTIONS=(
+    "64K tokens"
+    "128K tokens"
+    "256K tokens"
+    "512K tokens"
+    "1M tokens (maximum)"
+)
 
 echo -e "${BLUE}🚀 Installing DeepSeek Claude in isolated environment...${NC}"
 
@@ -42,6 +74,105 @@ if [ -z "$DEEPSEEK_API_KEY" ]; then
     echo ""
 fi
 
+# Detect if running interactively (has a TTY)
+IS_INTERACTIVE=false
+if [ -t 0 ]; then
+    IS_INTERACTIVE=true
+fi
+
+# Model selection function
+select_models() {
+    local selected_primary=""
+    local selected_small=""
+    local selected_context=""
+
+    if [ "$IS_INTERACTIVE" = true ]; then
+        echo ""
+        echo -e "${BOLD}${CYAN}╔══════════════════════════════════════════════════════════════╗${NC}"
+        echo -e "${BOLD}${CYAN}║              🧠 DeepSeek Model Configuration                ║${NC}"
+        echo -e "${BOLD}${CYAN}╚══════════════════════════════════════════════════════════════╝${NC}"
+        echo ""
+
+        # Select primary model
+        echo -e "${BOLD}Select your PRIMARY model (for complex tasks):${NC}"
+        echo ""
+        for i in "${!MODELS[@]}"; do
+            echo -e "  ${GREEN}$((i+1)))${NC} ${MODEL_DESCRIPTIONS[$i]}"
+        done
+        echo ""
+        while true; do
+            read -r -p "Enter choice [1-${#MODELS[@]}] (default: 1 - deepseek-v4-pro): " choice
+            choice="${choice:-1}"
+            if [[ "$choice" =~ ^[1-4]$ ]]; then
+                selected_primary="${MODELS[$((choice-1))]}"
+                break
+            fi
+            echo -e "${RED}Invalid choice. Please enter 1-${#MODELS[@]}.${NC}"
+        done
+        echo -e "${GREEN}  ✓ Primary model: $selected_primary${NC}"
+        echo ""
+
+        # Select small/fast model
+        echo -e "${BOLD}Select your SMALL/FAST model (for quick tasks):${NC}"
+        echo ""
+        for i in "${!MODELS[@]}"; do
+            echo -e "  ${GREEN}$((i+1)))${NC} ${MODEL_DESCRIPTIONS[$i]}"
+        done
+        echo ""
+        while true; do
+            read -r -p "Enter choice [1-${#MODELS[@]}] (default: 2 - deepseek-v4-flash): " choice
+            choice="${choice:-2}"
+            if [[ "$choice" =~ ^[1-4]$ ]]; then
+                selected_small="${MODELS[$((choice-1))]}"
+                break
+            fi
+            echo -e "${RED}Invalid choice. Please enter 1-${#MODELS[@]}.${NC}"
+        done
+        echo -e "${GREEN}  ✓ Small/fast model: $selected_small${NC}"
+        echo ""
+
+        # Select context limit
+        echo -e "${BOLD}Select context window limit:${NC}"
+        echo ""
+        for i in "${!CONTEXT_LIMITS[@]}"; do
+            echo -e "  ${GREEN}$((i+1)))${NC} ${CONTEXT_DESCRIPTIONS[$i]}"
+        done
+        echo ""
+        while true; do
+            read -r -p "Enter choice [1-${#CONTEXT_LIMITS[@]}] (default: 5 - 1M tokens): " choice
+            choice="${choice:-5}"
+            if [[ "$choice" =~ ^[1-5]$ ]]; then
+                selected_context="${CONTEXT_LIMITS[$((choice-1))]}"
+                break
+            fi
+            echo -e "${RED}Invalid choice. Please enter 1-${#CONTEXT_LIMITS[@]}.${NC}"
+        done
+        echo -e "${GREEN}  ✓ Context limit: $selected_context tokens${NC}"
+        echo ""
+    else
+        # Non-interactive defaults
+        selected_primary="deepseek-v4-pro"
+        selected_small="deepseek-v4-flash"
+        selected_context="1000000"
+        echo -e "${BLUE}📋 Using default model configuration (non-interactive mode):${NC}"
+        echo -e "   Primary model: $selected_primary"
+        echo -e "   Small/fast model: $selected_small"
+        echo -e "   Context limit: $selected_context tokens"
+        echo ""
+    fi
+
+    # Write config file
+    cat > "$INSTALL_DIR/config.env" << CONFIGEOF
+# DeepSeek Claude Configuration
+# Edit this file or run 'deepseek-claude set-model' to change settings
+DEEPSEEK_PRIMARY_MODEL="$selected_primary"
+DEEPSEEK_SMALL_MODEL="$selected_small"
+DEEPSEEK_CONTEXT_LIMIT="$selected_context"
+CONFIGEOF
+
+    echo -e "${GREEN}✅ Configuration saved to $INSTALL_DIR/config.env${NC}"
+}
+
 # Create installation directory
 echo -e "${BLUE}📁 Creating installation directory: $INSTALL_DIR${NC}"
 mkdir -p "$INSTALL_DIR"
@@ -64,6 +195,9 @@ fi
 echo -e "${BLUE}⬇️  Installing @anthropic-ai/claude-code...${NC}"
 npm install @anthropic-ai/claude-code
 
+# Run model selection
+select_models
+
 # Create the wrapper script
 echo -e "${BLUE}📝 Creating wrapper script...${NC}"
 cat > "$INSTALL_DIR/$WRAPPER_SCRIPT" << 'EOF'
@@ -77,18 +211,181 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+BOLD='\033[1m'
 NC='\033[0m' # No Color
-
-# Check if DEEPSEEK_API_KEY is set
-if [ -z "$DEEPSEEK_API_KEY" ]; then
-    echo "❌ Error: DEEPSEEK_API_KEY environment variable is not set."
-    echo "Please set it by running: export DEEPSEEK_API_KEY=your_api_key"
-    echo "Or add it to your shell profile (~/.bashrc, ~/.zshrc, etc.)"
-    exit 1
-fi
 
 # Get the directory where this script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CONFIG_FILE="$SCRIPT_DIR/config.env"
+
+# Available models and context limits (for set-model command)
+MODELS=("deepseek-v4-pro" "deepseek-v4-flash" "deepseek-chat" "deepseek-reasoner")
+MODEL_DESCRIPTIONS=(
+    "DeepSeek V4 Pro - Strongest model for complex reasoning, coding, and agent workflows"
+    "DeepSeek V4 Flash - Fast and economical for cost-efficient production use"
+    "DeepSeek Chat - Legacy model (maps to V4 Flash non-thinking mode)"
+    "DeepSeek Reasoner - Legacy model (maps to V4 Flash thinking mode)"
+)
+CONTEXT_LIMITS=("64000" "128000" "256000" "512000" "1000000")
+CONTEXT_DESCRIPTIONS=("64K tokens" "128K tokens" "256K tokens" "512K tokens" "1M tokens (maximum)")
+
+# Load configuration
+load_config() {
+    if [ -f "$CONFIG_FILE" ]; then
+        # shellcheck source=/dev/null
+        source "$CONFIG_FILE"
+    else
+        DEEPSEEK_PRIMARY_MODEL="deepseek-v4-pro"
+        DEEPSEEK_SMALL_MODEL="deepseek-v4-flash"
+        DEEPSEEK_CONTEXT_LIMIT="1000000"
+    fi
+}
+
+# Handle 'set-model' command - interactive model reconfiguration
+handle_set_model() {
+    echo ""
+    echo -e "${BOLD}${CYAN}╔══════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${BOLD}${CYAN}║              🧠 DeepSeek Model Configuration                ║${NC}"
+    echo -e "${BOLD}${CYAN}╚══════════════════════════════════════════════════════════════╝${NC}"
+    echo ""
+
+    load_config
+    echo -e "${BLUE}Current configuration:${NC}"
+    echo -e "  Primary model:  $DEEPSEEK_PRIMARY_MODEL"
+    echo -e "  Small/fast model: $DEEPSEEK_SMALL_MODEL"
+    echo -e "  Context limit:  $DEEPSEEK_CONTEXT_LIMIT tokens"
+    echo ""
+
+    # Select primary model
+    echo -e "${BOLD}Select your PRIMARY model (for complex tasks):${NC}"
+    echo ""
+    for i in "${!MODELS[@]}"; do
+        local marker=""
+        if [ "${MODELS[$i]}" = "$DEEPSEEK_PRIMARY_MODEL" ]; then
+            marker=" ${CYAN}(current)${NC}"
+        fi
+        echo -e "  ${GREEN}$((i+1)))${NC} ${MODEL_DESCRIPTIONS[$i]}$marker"
+    done
+    echo ""
+    while true; do
+        read -r -p "Enter choice [1-${#MODELS[@]}] (default: keep current): " choice
+        if [ -z "$choice" ]; then
+            break
+        fi
+        if [[ "$choice" =~ ^[1-4]$ ]]; then
+            DEEPSEEK_PRIMARY_MODEL="${MODELS[$((choice-1))]}"
+            break
+        fi
+        echo -e "${RED}Invalid choice. Please enter 1-${#MODELS[@]} or press Enter to keep current.${NC}"
+    done
+    echo -e "${GREEN}  ✓ Primary model: $DEEPSEEK_PRIMARY_MODEL${NC}"
+    echo ""
+
+    # Select small/fast model
+    echo -e "${BOLD}Select your SMALL/FAST model (for quick tasks):${NC}"
+    echo ""
+    for i in "${!MODELS[@]}"; do
+        local marker=""
+        if [ "${MODELS[$i]}" = "$DEEPSEEK_SMALL_MODEL" ]; then
+            marker=" ${CYAN}(current)${NC}"
+        fi
+        echo -e "  ${GREEN}$((i+1)))${NC} ${MODEL_DESCRIPTIONS[$i]}$marker"
+    done
+    echo ""
+    while true; do
+        read -r -p "Enter choice [1-${#MODELS[@]}] (default: keep current): " choice
+        if [ -z "$choice" ]; then
+            break
+        fi
+        if [[ "$choice" =~ ^[1-4]$ ]]; then
+            DEEPSEEK_SMALL_MODEL="${MODELS[$((choice-1))]}"
+            break
+        fi
+        echo -e "${RED}Invalid choice. Please enter 1-${#MODELS[@]} or press Enter to keep current.${NC}"
+    done
+    echo -e "${GREEN}  ✓ Small/fast model: $DEEPSEEK_SMALL_MODEL${NC}"
+    echo ""
+
+    # Select context limit
+    echo -e "${BOLD}Select context window limit:${NC}"
+    echo ""
+    for i in "${!CONTEXT_LIMITS[@]}"; do
+        local marker=""
+        if [ "${CONTEXT_LIMITS[$i]}" = "$DEEPSEEK_CONTEXT_LIMIT" ]; then
+            marker=" ${CYAN}(current)${NC}"
+        fi
+        echo -e "  ${GREEN}$((i+1)))${NC} ${CONTEXT_DESCRIPTIONS[$i]}$marker"
+    done
+    echo ""
+    while true; do
+        read -r -p "Enter choice [1-${#CONTEXT_LIMITS[@]}] (default: keep current): " choice
+        if [ -z "$choice" ]; then
+            break
+        fi
+        if [[ "$choice" =~ ^[1-5]$ ]]; then
+            DEEPSEEK_CONTEXT_LIMIT="${CONTEXT_LIMITS[$((choice-1))]}"
+            break
+        fi
+        echo -e "${RED}Invalid choice. Please enter 1-${#CONTEXT_LIMITS[@]} or press Enter to keep current.${NC}"
+    done
+    echo -e "${GREEN}  ✓ Context limit: $DEEPSEEK_CONTEXT_LIMIT tokens${NC}"
+    echo ""
+
+    # Save config
+    cat > "$CONFIG_FILE" << CONFIGEOF
+# DeepSeek Claude Configuration
+# Edit this file or run 'deepseek-claude set-model' to change settings
+DEEPSEEK_PRIMARY_MODEL="$DEEPSEEK_PRIMARY_MODEL"
+DEEPSEEK_SMALL_MODEL="$DEEPSEEK_SMALL_MODEL"
+DEEPSEEK_CONTEXT_LIMIT="$DEEPSEEK_CONTEXT_LIMIT"
+CONFIGEOF
+
+    echo -e "${GREEN}✅ Configuration saved!${NC}"
+    echo ""
+    echo -e "${BLUE}New configuration:${NC}"
+    echo -e "  Primary model:    $DEEPSEEK_PRIMARY_MODEL"
+    echo -e "  Small/fast model: $DEEPSEEK_SMALL_MODEL"
+    echo -e "  Context limit:    $DEEPSEEK_CONTEXT_LIMIT tokens"
+    echo ""
+    exit 0
+}
+
+# Handle 'show-config' command
+handle_show_config() {
+    load_config
+    echo ""
+    echo -e "${BOLD}${CYAN}DeepSeek Claude Configuration${NC}"
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "  Primary model:    ${GREEN}$DEEPSEEK_PRIMARY_MODEL${NC}"
+    echo -e "  Small/fast model: ${GREEN}$DEEPSEEK_SMALL_MODEL${NC}"
+    echo -e "  Context limit:    ${GREEN}$DEEPSEEK_CONTEXT_LIMIT tokens${NC}"
+    echo -e "  Config file:      $CONFIG_FILE"
+    echo ""
+    echo -e "${BLUE}To change: ${NC}deepseek-claude set-model"
+    echo ""
+    exit 0
+}
+
+# Check if DEEPSEEK_API_KEY is set (skip for config commands)
+if [ "$1" != "set-model" ] && [ "$1" != "show-config" ]; then
+    if [ -z "$DEEPSEEK_API_KEY" ]; then
+        echo "❌ Error: DEEPSEEK_API_KEY environment variable is not set."
+        echo "Please set it by running: export DEEPSEEK_API_KEY=your_api_key"
+        echo "Or add it to your shell profile (~/.bashrc, ~/.zshrc, etc.)"
+        exit 1
+    fi
+fi
+
+# Handle custom commands
+case "$1" in
+    set-model)
+        handle_set_model
+        ;;
+    show-config)
+        handle_show_config
+        ;;
+esac
 
 # Handle the 'update' command specifically
 if [ "$1" = "update" ]; then
@@ -129,11 +426,15 @@ if [ "$1" = "update" ]; then
     exit 0
 fi
 
-# Set DeepSeek environment variables for all other commands
+# Load configuration for runtime
+load_config
+
+# Set DeepSeek environment variables from config
 export ANTHROPIC_BASE_URL="https://api.deepseek.com/anthropic"
 export ANTHROPIC_AUTH_TOKEN="$DEEPSEEK_API_KEY"
-export ANTHROPIC_MODEL="DeepSeek-V3.1"
-export ANTHROPIC_SMALL_FAST_MODEL="deepseek-chat"
+export ANTHROPIC_MODEL="$DEEPSEEK_PRIMARY_MODEL"
+export ANTHROPIC_SMALL_FAST_MODEL="$DEEPSEEK_SMALL_MODEL"
+export CLAUDE_CODE_MAX_CONTEXT_TOKENS="$DEEPSEEK_CONTEXT_LIMIT"
 
 # Run claude-code from the isolated installation with all arguments
 exec "$SCRIPT_DIR/node_modules/.bin/claude" "$@"
@@ -183,12 +484,15 @@ echo -e "${BLUE}📚 Additional Information:${NC}"
 echo -e "• Your original claude installation remains untouched"
 echo -e "• DeepSeek Claude is installed in: $INSTALL_DIR"
 echo -e "• The command 'deepseek-claude' is now available system-wide"
+echo -e "• To change models: ${YELLOW}deepseek-claude set-model${NC}"
+echo -e "• To view config:   ${YELLOW}deepseek-claude show-config${NC}"
 echo -e "• To uninstall, simply run: rm -rf $INSTALL_DIR"
-echo -e "• For future installations, you can use: curl -L https://raw.githubusercontent.com/iDrwish/deepseek-claude-wrapper/main/install-deepseek-claude.sh | bash"
 echo ""
-echo -e "${BLUE}🔧 Environment Variables Set:${NC}"
-echo -e "• ANTHROPIC_BASE_URL=https://api.deepseek.com/anthropic"
-echo -e "• ANTHROPIC_AUTH_TOKEN=\$DEEPSEEK_API_KEY"
-echo -e "• ANTHROPIC_MODEL=DeepSeek-V3.1"
-echo -e "• ANTHROPIC_SMALL_FAST_MODEL=deepseek-chat"
+echo -e "${BLUE}🔧 Configuration:${NC}"
+# shellcheck source=/dev/null
+source "$INSTALL_DIR/config.env"
+echo -e "• Primary model:    $DEEPSEEK_PRIMARY_MODEL"
+echo -e "• Small/fast model: $DEEPSEEK_SMALL_MODEL"
+echo -e "• Context limit:    $DEEPSEEK_CONTEXT_LIMIT tokens"
+echo -e "• Base URL:         https://api.deepseek.com/anthropic"
 echo ""

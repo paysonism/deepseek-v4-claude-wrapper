@@ -4,11 +4,12 @@ A CLI wrapper that creates an isolated Claude Code installation configured to us
 
 ## 🚀 What This Does
 
-This project provides a seamless way to use Claude Code with DeepSeek V3.1 while maintaining **complete CLI compatibility** with the original Claude Code:
+This project provides a seamless way to use Claude Code with DeepSeek models while maintaining **complete CLI compatibility** with the original Claude Code:
 
 - **🔄 100% CLI Compatibility**: All Claude Code commands and flags work with `deepseek-claude`
 - **🔒 Isolated Environment**: Installs Claude Code in `~/.deepseek-claude/`
-- **🧠 DeepSeek V3.1 Integration**: Pre-configured to use DeepSeek's advanced reasoning model
+- **🧠 Multi-Model Support**: Choose from all current DeepSeek models (V4 Pro, V4 Flash, Chat, Reasoner)
+- **📏 Configurable Context**: Set context window from 64K to 1M tokens
 - **🛠️ System Integration**: Adds `deepseek-claude` command available system-wide
 - **🚫 No Conflicts**: Your original Claude Code installation remains unchanged
 
@@ -56,7 +57,22 @@ chmod +x install-deepseek-claude.sh
 ./install-deepseek-claude.sh
 ```
 
-### 3. Start Using DeepSeek Claude
+### 3. Choose Your Models
+
+During installation, you'll be prompted to select:
+- **Primary model** — for complex reasoning tasks
+- **Small/fast model** — for quick tasks
+- **Context window limit** — from 64K to 1M tokens
+
+Available models:
+| Model | Description |
+|-------|-------------|
+| `deepseek-v4-pro` | Strongest model for complex reasoning, coding, and agent workflows |
+| `deepseek-v4-flash` | Fast and economical for cost-efficient production use |
+| `deepseek-chat` | Legacy (maps to V4 Flash non-thinking mode) |
+| `deepseek-reasoner` | Legacy (maps to V4 Flash thinking mode) |
+
+### 4. Start Using DeepSeek Claude
 
 ```bash
 # Navigate to your project
@@ -82,6 +98,8 @@ deepseek-claude
 | `claude config` | `deepseek-claude config` | Configure settings |
 | `claude mcp` | `deepseek-claude mcp` | Configure MCP servers |
 | `claude doctor` | `deepseek-claude doctor` | Health diagnostics |
+| — | `deepseek-claude set-model` | Change model and context settings |
+| — | `deepseek-claude show-config` | Display current configuration |
 
 ### 🏷️ All Claude Code Flags Work:
 
@@ -129,6 +147,15 @@ cat logs.txt | deepseek-claude -p "Analyze these logs"
 deepseek-claude -r "session-123" "Continue the refactoring"
 ```
 
+### Model Configuration
+```bash
+# Change models and context limit interactively
+deepseek-claude set-model
+
+# View current configuration
+deepseek-claude show-config
+```
+
 ### Configuration & Management
 ```bash
 # Configure settings (same as Claude)
@@ -148,13 +175,16 @@ The installation creates a transparent wrapper that provides **100% compatibilit
 
 1. **Creates Isolated Directory**: `~/.deepseek-claude/`
 2. **Installs Claude Code**: Local npm installation in the isolated environment
-3. **Configures Environment**: Sets these DeepSeek-specific variables:
+3. **Model Selection**: Interactive prompt to choose primary model, small/fast model, and context limit
+4. **Saves Configuration**: Stores choices in `~/.deepseek-claude/config.env`
+5. **Configures Environment**: Sets these DeepSeek-specific variables at runtime:
    - `ANTHROPIC_BASE_URL=https://api.deepseek.com/anthropic`
    - `ANTHROPIC_AUTH_TOKEN=$DEEPSEEK_API_KEY`
-   - `ANTHROPIC_MODEL=DeepSeek-V3.1`
-   - `ANTHROPIC_SMALL_FAST_MODEL=deepseek-chat`
-4. **Creates Smart Wrapper**: Intercepts `update` command, passes everything else to Claude transparently
-5. **Adds to PATH**: Makes `deepseek-claude` available system-wide with full CLI compatibility
+   - `ANTHROPIC_MODEL=<your selected primary model>`
+   - `ANTHROPIC_SMALL_FAST_MODEL=<your selected small model>`
+   - `CLAUDE_CODE_MAX_CONTEXT_TOKENS=<your selected context limit>`
+6. **Creates Smart Wrapper**: Intercepts `update`, `set-model`, `show-config` commands; passes everything else to Claude transparently
+7. **Adds to PATH**: Makes `deepseek-claude` available system-wide with full CLI compatibility
 
 ## 🗂️ File Structure
 
@@ -170,6 +200,7 @@ After installation:
 ~/.deepseek-claude/
 ├── node_modules/                 # Isolated Claude Code installation
 ├── package.json                  # npm configuration
+├── config.env                    # Model and context limit configuration
 └── deepseek-claude              # Environment wrapper script
 ```
 
@@ -241,6 +272,21 @@ chmod +x uninstall-deepseek-claude.sh
 
 ## ⚙️ Advanced Configuration
 
+### Changing Models After Installation
+
+Use the interactive model selector:
+```bash
+deepseek-claude set-model
+```
+
+Or edit the config file directly:
+```bash
+# Edit ~/.deepseek-claude/config.env
+DEEPSEEK_PRIMARY_MODEL="deepseek-v4-pro"
+DEEPSEEK_SMALL_MODEL="deepseek-v4-flash"
+DEEPSEEK_CONTEXT_LIMIT="1000000"
+```
+
 ### Custom Installation Location
 Edit the `INSTALL_DIR` variable in the installation script:
 
@@ -267,11 +313,12 @@ export CUSTOM_VAR="value"
 ## 🎉 Features
 
 - 🔄 **100% Claude CLI Compatibility**: Every command and flag from [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code/cli-reference) works identically
-- 🧠 **DeepSeek V3.1 Reasoning**: Advanced reasoning capabilities with full tool support
+- 🧠 **Multi-Model Support**: Choose from DeepSeek V4 Pro, V4 Flash, Chat, and Reasoner
+- 📏 **Configurable Context**: Set context window from 64K to 1M tokens
 - 🔒 **Complete Isolation**: No interference with existing Claude installations
-- 🚀 **One-Command Setup**: Simple installation process with automatic configuration
+- 🚀 **One-Command Setup**: Simple installation process with interactive model selection
 - 🛠️ **System-wide Access**: Available from any directory as `deepseek-claude`
-- 🧹 **Easy Management**: Built-in update command and clean uninstallation
+- 🧹 **Easy Management**: Built-in update, model switching, and clean uninstallation
 
 ---
 
