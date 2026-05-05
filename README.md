@@ -18,10 +18,15 @@ This project provides a seamless way to use Claude Code with DeepSeek models whi
 - Node.js (v14 or higher)
 - npm
 - DeepSeek API key ([Get one here](https://platform.deepseek.com/))
+- **Linux/macOS**: Bash shell
+- **Windows**: PowerShell 5.1+ (included with Windows 10/11)
 
 ## ⚡ Quick Setup
 
 ### 1. Set Your DeepSeek API Key
+
+<details>
+<summary><strong>Linux / macOS</strong></summary>
 
 ```bash
 # Temporary setup (for current session)
@@ -31,8 +36,25 @@ export DEEPSEEK_API_KEY=your_actual_api_key_here
 echo 'export DEEPSEEK_API_KEY=your_actual_api_key_here' >> ~/.bashrc  # or ~/.bash_profile / ~/.zshrc
 source ~/.bashrc  # or source ~/.bash_profile / ~/.zshrc
 ```
+</details>
+
+<details>
+<summary><strong>Windows (PowerShell)</strong></summary>
+
+```powershell
+# Temporary setup (for current session)
+$env:DEEPSEEK_API_KEY = "your_actual_api_key_here"
+
+# Permanent setup (persists across restarts)
+setx DEEPSEEK_API_KEY "your_actual_api_key_here"
+# Then restart your terminal
+```
+</details>
 
 ### 2. Run the Installation
+
+<details>
+<summary><strong>Linux / macOS</strong></summary>
 
 **Option A: Download and run locally**
 ```bash
@@ -56,6 +78,26 @@ curl -O https://raw.githubusercontent.com/iDrwish/deepseek-claude-wrapper/main/i
 chmod +x install-deepseek-claude.sh
 ./install-deepseek-claude.sh
 ```
+</details>
+
+<details>
+<summary><strong>Windows (PowerShell)</strong></summary>
+
+```powershell
+# Run the installer
+.\install-deepseek-claude.ps1
+```
+
+If you get an execution policy error:
+```powershell
+powershell -ExecutionPolicy Bypass -File .\install-deepseek-claude.ps1
+```
+
+**One-line download and install:**
+```powershell
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/iDrwish/deepseek-claude-wrapper/main/install-deepseek-claude.ps1" -OutFile "install-deepseek-claude.ps1"; .\install-deepseek-claude.ps1
+```
+</details>
 
 ### 3. Choose Your Models
 
@@ -190,18 +232,22 @@ The installation creates a transparent wrapper that provides **100% compatibilit
 
 ```
 deepseek-claude-wrapper/
-├── install-deepseek-claude.sh    # Main installation script  
-├── uninstall-deepseek-claude.sh  # Clean removal script
+├── install-deepseek-claude.sh    # Installation script (Linux/macOS)
+├── install-deepseek-claude.ps1   # Installation script (Windows)
+├── uninstall-deepseek-claude.sh  # Removal script (Linux/macOS)
+├── uninstall-deepseek-claude.ps1 # Removal script (Windows)
 └── README.md                     # This documentation
 ```
 
 After installation:
 ```
-~/.deepseek-claude/
-├── node_modules/                 # Isolated Claude Code installation
-├── package.json                  # npm configuration
-├── config.env                    # Model and context limit configuration
-└── deepseek-claude              # Environment wrapper script
+~/.deepseek-claude/                       # (or %USERPROFILE%\.deepseek-claude on Windows)
+├── node_modules/                         # Isolated Claude Code installation
+├── package.json                          # npm configuration
+├── config.env                            # Model and context limit configuration
+├── deepseek-claude                       # Wrapper script (Linux/macOS)
+├── deepseek-claude.cmd                   # Wrapper script (Windows CMD)
+└── deepseek-claude.ps1                   # Wrapper script (Windows PowerShell)
 ```
 
 ## 🛠️ DeepSeek API Compatibility
@@ -219,13 +265,19 @@ This setup leverages DeepSeek's full Anthropic API compatibility:
 
 To completely remove DeepSeek Claude:
 
+**Linux/macOS:**
 ```bash
 ./uninstall-deepseek-claude.sh
 ```
 
+**Windows (PowerShell):**
+```powershell
+.\uninstall-deepseek-claude.ps1
+```
+
 This will:
-- Remove the `~/.deepseek-claude/` directory
-- Remove any system symlinks
+- Remove the `~/.deepseek-claude/` directory (or `%USERPROFILE%\.deepseek-claude` on Windows)
+- Remove PATH entries
 - Leave your original Claude Code installation untouched
 
 ## ❓ Troubleshooting
@@ -233,6 +285,7 @@ This will:
 ### Command Not Found
 If `deepseek-claude` is not found:
 
+**Linux/macOS:**
 ```bash
 # Check if installed
 ls -la ~/.deepseek-claude/
@@ -243,14 +296,32 @@ export PATH="$HOME/.deepseek-claude:$PATH"
 # Or restart your terminal
 ```
 
+**Windows:**
+```powershell
+# Check if installed
+dir $env:USERPROFILE\.deepseek-claude
+
+# Manually add to PATH for this session
+$env:PATH = "$env:USERPROFILE\.deepseek-claude;$env:PATH"
+
+# Or restart your terminal (PATH is set permanently during install)
+```
+
 ### API Key Issues
+
+**Linux/macOS:**
 ```bash
 # Verify API key is set
 echo $DEEPSEEK_API_KEY
-
-# Check DeepSeek platform for key validity
-# https://platform.deepseek.com/
 ```
+
+**Windows:**
+```powershell
+# Verify API key is set
+echo $env:DEEPSEEK_API_KEY
+```
+
+Check the [DeepSeek platform](https://platform.deepseek.com/) for key validity.
 
 ### Auto-Update Failed Message
 If you see "Auto-update failed" when starting `deepseek-claude`:
